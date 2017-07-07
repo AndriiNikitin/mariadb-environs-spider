@@ -5,7 +5,7 @@ RUN yum -y install m4 git wget python cmake make gcc-c++ ncurses-devel bison zli
 
 RUN wget -O example.sh https://raw.github.com/AndriiNikitin/mariadb-environs-spider/master/_script/example.sh
 
-RUN example.sh
+RUN bash -v -x example.sh
 EOF
 
 docker build .
