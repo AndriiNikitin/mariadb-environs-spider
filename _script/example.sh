@@ -1,3 +1,4 @@
+set -e
 
 ## Step 1. Setup default Environs cluster
 
