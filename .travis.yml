@@ -1,0 +1,7 @@
+dist: trusty
+sudo: false
+
+
+script:
+  - bash -x _script/example_in_docker.sh
+
