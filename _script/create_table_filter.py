@@ -17,19 +17,6 @@ import subprocess
 # logging.basicConfig(format=LOGFORMAT, level=logging.DEBUG)
 
 
-"""
-if (len(sys.argv)==2 and sys.argv[1]=="-h") or len(sys.argv) > 2:
-	sys.stderr.write("Generate INSERT SQL command which should inserd data with statistics similar to provided results of mysql command SHOW INDEX FROM <tablename>\n")
-	sys.stderr.write("usage: mysqldatagen.py ?scale? < file.sql\n")
-	exit(0)
-
-if len(sys.argv) > 2:
-	sys.stderr.write("ERROR:  only one argument is expected\n")
-	sys.stderr.write("start with -h flag to see help\n")
-	exit(1)
-"""
-
-
 def print_next_environ_binding(next_environ_binding):
         portcmd = "grep port m{}*/gen_cnf.sh | head -n 1".format(next_environ_binding)
 	port = subprocess.check_output(['bash','-c', portcmd])
@@ -45,11 +32,9 @@ def print_next_environ_binding(next_environ_binding):
 	else:
 		host = host.split("=")[1].strip()
 
-	sys.stdout.write(" comment 'host \"{}\" port \"{}\"'".format(host, port))
+	sys.stdout.write(" comment 'host \"{}\", port \"{}\", user \"root\"' ".format(host, port))
 
 
-"""
-"""
 
 def parse_create_table(is_root_node):
 	class States:
@@ -81,7 +66,7 @@ def parse_create_table(is_root_node):
 				if m.group(1) : sys.stdout.write(m.group(1))
 				cached_engine_definition=m.group(2)
 				if is_root_node:
-					cached_engine_definition += " SPIDER "
+					cached_engine_definition += " SPIDER COMMENT 'wrapper \"mysql\", table \"log\" ' "
 				else:
 					cached_engine_definition += m.group(4)
 
