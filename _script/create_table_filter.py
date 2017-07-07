@@ -73,10 +73,25 @@ def parse_create_table(is_root_node):
 			line = "\n"
 			if m.group(4) : line = m.group(4) + line
 			next_environ_idx=0
+			cached_engine_definition=""
 	
+		if state == States.IN_CREATE_TABLE and line:
+			m = re.match(r'([^\;]*)(\s+ENGINE\s+(=\s+)?)([^\s,\'\"]*)', line, re.I)
+			if m:
+				if m.group(1) : sys.stdout.write(m.group(1))
+				cached_engine_definition=m.group(2)
+				if is_root_node:
+					cached_engine_definition += " SPIDER "
+				else:
+					cached_engine_definition += m.group(4)
+
 		if state == States.IN_CREATE_TABLE and line:
 			m = re.match(r'([^\;]*)(PARTITION\s+BY)([^\;]*)', line, re.I)
 			if m:
+				if cached_engine_definition : 
+					if is_root_node :
+						sys.stdout.write(cached_engine_definition)
+
 				if m.group(1) : sys.stdout.write(m.group(1))
 				if m.group(2) and is_root_node : sys.stdout.write(m.group(2))
 				state = States.IN_CLAUSE_PARTITION_BY
@@ -107,6 +122,7 @@ def parse_create_table(is_root_node):
 				sys.stdout.write(";")
 
 		if line and re.match(r'(.*)(\;)(.*)', line, re.I):
+			cached_engine_definition = ""
 			next_environ_idx=0
 			state = States.OUTSIDE
 
