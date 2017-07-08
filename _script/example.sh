@@ -54,6 +54,7 @@ cluster1/sql.sh "select count(*) from test.log"
 m0*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
 cluster1/sql.sh "select count(*) from test.log"
 
+[ "${SKIP_TEST1:-0}" != 0 ] || (
 
 ## Step 4. Replace one node for debugging
 
@@ -76,6 +77,10 @@ m3*/startup.sh
 # new node is in place, let's make sure that everything is ok
 cluster1/status.sh
 cluster1/sql.sh "select version()"
+
+)
+
+[ "${SKIP_TEST2:-0}" != 0 ] || (
 
 ## Step 5. Replace one node with different vendor
 
@@ -115,4 +120,4 @@ m0*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
 cluster1/sql.sh "select count(*) from test.log"
 m0*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
 cluster1/sql.sh "select count(*) from test.log"
-
+)
