@@ -4,9 +4,9 @@ services:
   - docker
 
 env:
-#  matrix:
-#    - SKIP_TEST1=1
-#    - SKIP_TEST2=1
+  matrix:
+    - SKIP_TEST1=1
+    - SKIP_TEST2=1
 
 script:
   - bash -x _script/example_in_docker.sh
