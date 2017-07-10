@@ -109,6 +109,7 @@ sed -i '/m2/ s/m2/o1/' cluster1/nodes.lst
 # check cluster status
 cluster1/status.sh
 cluster1/sql.sh "select version()"
+)
 
 ## Step 6. Make sure that Spider is still working properly
 cluster1/sql.sh "select count(*) from test.log"
@@ -120,4 +121,4 @@ m0*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
 cluster1/sql.sh "select count(*) from test.log"
 m0*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
 cluster1/sql.sh "select count(*) from test.log"
-)
+
