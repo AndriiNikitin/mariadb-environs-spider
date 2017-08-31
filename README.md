@@ -26,7 +26,10 @@ git clone http://github.com/AndriiNikitin/mariadb-environs
 cd mariadb-environs
 ./get_plugin.sh spider
 _template/plant_cluster.sh cluster1
-cat cluster1/nodes.lst
+echo m0 > cluster1/nodes.lst
+echo m1 >> cluster1/nodes.lst
+echo m2 >> cluster1/nodes.lst
+echo m3 >> cluster1/nodes.lst
 cluster1/replant.sh 10.2.6
 m0*/download.sh
 cluster1/gen_cnf.sh
