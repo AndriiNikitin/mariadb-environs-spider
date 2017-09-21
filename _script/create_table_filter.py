@@ -65,6 +65,8 @@ def parse_create_table(is_root_node):
 			if m.group(3) : sys.stdout.write(m.group(3))
                         sys.stdout.write(m.group(4))
                         table_name=m.group(4).strip().strip('`')
+                        # discard eventual database name
+                        if "." in table_name: _, table_name = table_name.split(".")
 			line = "\n"
 			if m.group(5) : line = m.group(5) + line
 			next_environ_idx=0

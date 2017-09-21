@@ -1,22 +1,26 @@
 set -e
 
-## Step 1. Setup default Environs cluster
-
-git clone http://github.com/AndriiNikitin/mariadb-environs
-cd mariadb-environs
+## Step 1. Setup default Environs cluster if needed
+if [ ! -e common.sh ] ; then
+  git clone http://github.com/AndriiNikitin/mariadb-environs
+  cd mariadb-environs
+fi
 ./get_plugin.sh spider
 
 _template/plant_cluster.sh cluster1
-cat cluster1/nodes.lst
-cluster1/replant.sh 10.2.6
-m0*/download.sh
+echo m1 > cluster1/nodes.lst
+echo m2 >> cluster1/nodes.lst
+echo m3 >> cluster1/nodes.lst
+echo m4 >> cluster1/nodes.lst
+cluster1/replant.sh 10.2.8
+m1*/download.sh
 cluster1/gen_cnf.sh
 cluster1/install_db.sh
 cluster1/startup.sh
 
 ## Step 2. Setup Spider
 
-m0*/sql.sh source _plugin/spider/_script/install_spider.sql
+m1*/sql.sh source _plugin/spider/_script/install_spider.sql
 # let's create partitioned table definition which will be sharded between 3 nodes
 tee ddl.sql <<EOF
 CREATE TABLE test.log
@@ -47,11 +51,11 @@ cluster1/sql.sh show create table test.log
 ## Step 3. Test inserts
 # Let's insert some data on m0 and check what exists on the rest
 
-m0*/sql.sh "insert into test.log select null, adddate(now(),-10*365), 1, 1, 1"
+m1*/sql.sh "insert into test.log select null, adddate(now(),-10*365), 1, 1, 1"
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
+m1*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
+m1*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
 cluster1/sql.sh "select count(*) from test.log"
 
 [ "${SKIP_TEST1:-0}" != 0 ] || (
@@ -113,12 +117,12 @@ cluster1/sql.sh "select version()"
 
 ## Step 6. Make sure that Spider is still working properly
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh truncate test.log
+m1*/sql.sh truncate test.log
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh "insert into test.log select null, adddate(now(),-10*365), 1, 1, 1"
+m1*/sql.sh "insert into test.log select null, adddate(now(),-10*365), 1, 1, 1"
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
+m1*/sql.sh "insert into test.log select null, adddate(now(),-5*365), 2, 2, 2"
 cluster1/sql.sh "select count(*) from test.log"
-m0*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
+m1*/sql.sh "insert into test.log select null, now(), 3, 3, 3"
 cluster1/sql.sh "select count(*) from test.log"
 
