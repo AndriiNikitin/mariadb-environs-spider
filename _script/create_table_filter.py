@@ -21,8 +21,8 @@ node_list_file = None
 
 def print_next_environ_binding(next_environ_binding):
 	if node_list_file:
-		portcmd = "grep port $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding,node_list_file)
-		hostcmd = "grep hostname $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding,node_list_file)
+		portcmd = "grep port $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding+1,node_list_file)
+		hostcmd = "grep hostname $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding+1,node_list_file)
 	else:
 		portcmd = "grep port m{}*/gen_cnf.sh | head -n 1".format(next_environ_binding)
 		hostcmd = "grep hostname m{}*/gen_cnf.sh | head -n 1".format(next_environ_binding)
@@ -52,30 +52,33 @@ def parse_create_table(is_root_node):
 
 	state = States.OUTSIDE
 	next_environ_idx=0
+        table_name=""
 
 	for line in sys.stdin:
 #	log.debug("{0} : {1}".format(state, line.rstrip()))
 
-		m = re.match(r'(.*)(CREATE(\s+OR\s+REPLACE)?\s+TABLE\s+[^\(]*)(.*)', line, re.I)
+		m = re.match(r'(.*)(CREATE(\s+OR\s+REPLACE)?\s+TABLE\s+)([^\(]*)(.*)', line, re.I)
 		if m:
 			state = States.IN_CREATE_TABLE
 			if m.group(1) : sys.stdout.write(m.group(1))
 			if m.group(2) : sys.stdout.write(m.group(2))
 			if m.group(3) : sys.stdout.write(m.group(3))
+                        sys.stdout.write(m.group(4))
+                        table_name=m.group(4).strip().strip('`')
 			line = "\n"
-			if m.group(4) : line = m.group(4) + line
+			if m.group(5) : line = m.group(5) + line
 			next_environ_idx=0
 			cached_engine_definition=""
 	
 		if state == States.IN_CREATE_TABLE and line:
-			m = re.match(r'([^\;]*)(\s+ENGINE\s+(=\s+)?)([^\s,\'\"]*)', line, re.I)
+			m = re.match(r'([^\;]*)(\s+ENGINE\s*(=\s*)?)([^\s,\'\"]*)(.*)', line, re.I)
 			if m:
 				if m.group(1) : sys.stdout.write(m.group(1))
-				cached_engine_definition=m.group(2)
+                                sys.stdout.write(m.group(2))
+                                sys.stdout.write(m.group(4))
 				if is_root_node:
-					cached_engine_definition += " SPIDER COMMENT 'wrapper \"mysql\", table \"log\" ' "
-				else:
-					cached_engine_definition += m.group(4)
+					cached_engine_definition += " ENGINE SPIDER COMMENT 'wrapper \"mysql\", table \"{}\" ' ".format(table_name)
+                                line = m.group(5)
 
 		if state == States.IN_CREATE_TABLE and line:
 			m = re.match(r'([^\;]*)(PARTITION\s+BY)([^\;]*)', line, re.I)
@@ -116,6 +119,7 @@ def parse_create_table(is_root_node):
 			cached_engine_definition = ""
 			next_environ_idx=0
 			state = States.OUTSIDE
+                        table_name=""
 
 if len(sys.argv)>2 :
 	node_list_file = sys.argv[2]

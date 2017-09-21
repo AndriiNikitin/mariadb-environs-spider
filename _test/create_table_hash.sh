@@ -13,7 +13,8 @@ PARTITION BY HASH(id + timestamp)
 (
 	PARTITION p0,
 	PARTITION p1,
-	PARTITION p2);
+	PARTITION p2
+	);
 EOF
 )
 
