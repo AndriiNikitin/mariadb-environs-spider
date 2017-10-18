@@ -4,6 +4,10 @@
 The script will try to detect CREATE TABLE definitions for partitioned tables.
 If $1==0 then for each partition of detected table corresponding port and host will be injected.
 Otherwise - partitions will be attempted to be stripped out (for spider node)
+$2 optionally may be file name for nodes.lst of the cluster, where first entry is root Spider node
+if $2 is not provided, then m0 is root spider node and m1... are child nodes
+if $2 is environ id, then all tables to be created on the same instance, 
+thus sequence number is to be added to table names
 """
 
 import re
@@ -17,10 +21,18 @@ import subprocess
 # logging.basicConfig(format=LOGFORMAT, level=logging.DEBUG)
 
 node_list_file = None
+table_name=""
 
+# i.e. $2 is environ id
+def is_self_referencing():
+	return re.match(r'[a-z][0-9]', node_list_file)
 
 def print_next_environ_binding(next_environ_binding):
-	if node_list_file:
+	# if node_list_file is environ id, then all tables to be created on the same instance
+	if is_self_referencing() :
+		portcmd = "grep port {}*/gen_cnf.sh | head -n 1".format(node_list_file)
+		hostcmd = "grep hostname {}*/gen_cnf.sh | head -n 1".format(node_list_file)
+	elif node_list_file:
 		portcmd = "grep port $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding+1,node_list_file)
 		hostcmd = "grep hostname $(tail -n+{} '{}' | head -n1)*/gen_cnf.sh | head -n 1".format(next_environ_binding+1,node_list_file)
 	else:
@@ -39,8 +51,14 @@ def print_next_environ_binding(next_environ_binding):
 	else:
 		host = host.split("=")[1].strip()
 
-	sys.stdout.write(" comment 'host \"{}\", port \"{}\", user \"root\"' ".format(host, port))
+	# if node_list_file is environ id, then all tables to be created on the same instance
+	# thus sequence number is to be added to table names
+	if is_self_referencing() :
+		extra=', table \"{}_{}\" '.format(table_name,next_environ_binding)
+	else :
+		extra=""
 
+	sys.stdout.write(" comment 'host \"{}\", port \"{}\", user \"root\" {} '".format(host, port, extra))
 
 
 def parse_create_table(is_root_node):
@@ -52,6 +70,7 @@ def parse_create_table(is_root_node):
 
 	state = States.OUTSIDE
 	next_environ_idx=0
+        global table_name
         table_name=""
 
 	for line in sys.stdin:
@@ -63,8 +82,16 @@ def parse_create_table(is_root_node):
 			if m.group(1) : sys.stdout.write(m.group(1))
 			if m.group(2) : sys.stdout.write(m.group(2))
 			if m.group(3) : sys.stdout.write(m.group(3))
-                        sys.stdout.write(m.group(4))
+
                         table_name=m.group(4).strip().strip('`')
+			if is_root_node or (not is_self_referencing()) or (len(sys.argv)<1):
+				sys.stdout.write(m.group(4))
+			else:
+				# for self_referencing spider we append $1 to table name
+				# so child tables  with be in format table_N
+				# and could be referenced from root spider table
+				sys.stdout.write(" {}_{} ".format(table_name,sys.argv[1]))
+
                         # discard eventual database name
                         if "." in table_name: _, table_name = table_name.split(".")
 			line = "\n"
@@ -73,7 +100,7 @@ def parse_create_table(is_root_node):
 			cached_engine_definition=""
 	
 		if state == States.IN_CREATE_TABLE and line:
-			m = re.match(r'([^\;]*)(\s+ENGINE\s*(=\s*)?)([^\s,\'\"]*)(.*)', line, re.I)
+			m = re.match(r'([^\;]*)(\s*ENGINE\s*(=\s*)?)([^\s,\'\"]*)(.*)', line, re.I)
 			if m:
 				if m.group(1) : sys.stdout.write(m.group(1))
                                 sys.stdout.write(m.group(2))
